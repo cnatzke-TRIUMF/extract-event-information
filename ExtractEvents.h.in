@@ -1,0 +1,17 @@
+#ifndef EXTRACTEVENTS_H
+#define EXTRACTEVENTS_H
+
+// configured options for GammaGamma
+#define ExtractEvents_VERSION_MAJOR @ExtractEvents_VERSION_MAJOR@
+#define ExtractEvents_VERSION_MINOR @ExtractEvents_VERSION_MINOR@
+
+#include "Notifier.h"
+
+int main(int argc, char **argv);
+void AutoFileDetect(std::string file_name);
+void OpenRootFile(std::string file_name);
+void PrintUsage(char* argv[]);
+
+Notifier *notifier = new Notifier;
+
+#endif
