@@ -7,6 +7,7 @@ This is a conversion layer between the unpacked Analysis Trees from GRSISort and
 # Installation
 0. Requires GRSISort 4.X.X
 1. Get the code, either via tarball or from github
+
 I use ssh keys with github so the below command reflects that.
 ```
 git clone git@github.com:cnatzke-TRIUMF/extract-event-information.git
