@@ -44,19 +44,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /*
-    EventManager hist_man;
+    EventManager event_man;
     std::string fName = gChain->GetCurrentFile()->GetName();
     int run_number = GetRunNumber(fName.c_str());
 
     std::cout << "Processing run " << run_number << " with " << gChain->GetNtrees() << " file(s)" << std::endl;
 
     // Fill histograms
-    hist_man.MakeHistograms(gChain);
+    event_man.ConvertRootData(gChain);
 
     // Write histograms to file
-    hist_man.WriteHistogramsToFile();
-    */
+    //hist_man.WriteHistogramsToFile();
 
     return 0;
 } // main()

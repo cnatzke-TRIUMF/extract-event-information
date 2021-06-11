@@ -1,5 +1,5 @@
-#ifndef EXTRACTEVENTS_H
-#define EXTRACTEVENTS_H
+#ifndef EXTRACT_EVENTS_H
+#define EXTRACT_EVENTS_H
 
 // configured options for GammaGamma
 #define ExtractEvents_VERSION_MAJOR @ExtractEvents_VERSION_MAJOR@

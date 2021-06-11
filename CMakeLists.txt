@@ -40,22 +40,22 @@ execute_process(COMMAND grsi-config --all-libs --GRSIData-libs --root
 file(GLOB SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 
 # Naming main executable
-add_executable(check_calibration ${SOURCES})
+add_executable(extract_events ${SOURCES})
 
 # linking libraries
-target_link_libraries(check_calibration PUBLIC
+target_link_libraries(extract_events PUBLIC
    ${GRSI_CONFIG}
 )
 
 # add the binary tree to the search path for include files so that we will find header files
-target_include_directories(check_calibration PUBLIC
+target_include_directories(extract_events PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${GRSI_INCLUDE_DIRS}"
     include
     )
 
 # add install targets
-install(TARGETS check_calibration DESTINATION "${PROJECT_BINARY_DIR}/bin")
+install(TARGETS extract_events DESTINATION "${PROJECT_BINARY_DIR}/bin")
 install(FILES "${PROJECT_BINARY_DIR}/ExtractEvents.h"
    DESTINATION "${PROJECT_BINARY_DIR}/include"
 )

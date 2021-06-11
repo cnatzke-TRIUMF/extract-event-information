@@ -11,6 +11,7 @@
 #include "EventManager.h"
 #include "progress_bar.h"
 #include "LoadingMessenger.h"
+#include "TGRSIOptions.h"
 
 
 /************************************************************//**
@@ -18,59 +19,24 @@
  *
  * @param verbose Verbosity level
  ***************************************************************/
-void EventManager::MakeHistograms(TChain *input_chain)
+void EventManager::ConvertRootData(TChain *input_chain)
 {
     int verbose = 0;
 
-    // create histograms
-    InitializeHistograms(0);
-    FillHistograms(input_chain);
+    // Turn off crosstalk corrections
+    TGRSIOptions::AnalysisOptions()->SetCorrectCrossTalk(false);
+    // Parses Root tree and returns csv file containing event information
+    GetEventData(input_chain);
 
 } // GenerateHistogramFile()
 
 /************************************************************//**
- * Initializes histograms to be filled
- *
- * @param verbose Verbosity level
- ***************************************************************/
-void EventManager::InitializeHistograms(int verbose)
-{
-    int num_bins = 4000;
-    int bin_min = 0;
-    int bin_max = 4000;
-
-    if (verbose > 0 ) std::cout << "Initializing 1D histograms ... " << std::endl;
-
-    // 1D Histograms
-    hist_vec_1D.push_back(new TH1D("delta_time", "#Delta t", 2000, 0, 2000));
-    hist_vec_1D.push_back(new TH1D("k_value", "K Value", 1000, 0, 1000));
-    hist_vec_1D.push_back(new TH1D("energy", ";#gamma [keV];Counts / keV", num_bins, bin_min, bin_max));
-
-    if (verbose > 0 ) std::cout << "Creating 1D histograms ... [DONE]" << std::endl;
-
-    // 2D Histograms
-    if (verbose > 0 ) std::cout << "Creating 2D histograms ... " << std::endl;
-    TH2D *chan_hist = new TH2D("energy_channel", "", 70, 0, 70, num_bins, bin_min, bin_max);
-
-    // adding 'total' histograms to back of vector
-    hist_vec_2D.push_back(chan_hist);
-
-    if (verbose > 0 ) std::cout << "Initializing 2D histograms ... [DONE]" << std::endl;
-} // InitializeHistograms()
-
-/************************************************************//**
- * Fills histograms
+ * Extracts event information from AnalysisTree
  *
  * @param gChain Data chain
  ***************************************************************/
-void EventManager::FillHistograms(TChain *gChain)
+void EventManager::GetEventData(TChain *gChain)
 {
-
-    int prompt_time_max = 30;     // ns
-    int time_random_min = 1000;     // ns
-    int time_random_max = 2000;     // ns
-    //float bg_subtraction_factor = 0;
-    float bg_subtraction_factor = -1.0 * (prompt_time_max) / (time_random_max - time_random_min);
 
     if (gChain->FindBranch("TGriffin")) {
         gChain->SetBranchAddress("TGriffin", &fGrif);
@@ -89,35 +55,29 @@ void EventManager::FillHistograms(TChain *gChain)
     ProgressBar progress_bar(analysis_entries, 70, '=', ' ');
 
     // initialize csv output
-    std::ofstream csv_file("data.csv");
-    csv_file << "event,charge,energy,time,crystal" << std::endl;
+    std::string csv_filename = "data.csv";
+    std::ofstream csv_file(csv_filename);
+    csv_file << "event,multiplicity,charge,energy,time,crystal,x,y,z,k_value" << std::endl;
 
     for (auto i = 0; i < analysis_entries; i++) {
         gChain->GetEntry(i);
 
-        // Applies secondary energy calculation
+        // Build event vectors and apply any transformations
         PreProcessData();
         int multiplicity = energy_vec.size();
-        for (int n = 0; n < multiplicity; n++){
-            csv_file << i << "," << charge_vec.at(n) << "," << energy_vec.at(n) << "," << time_vec.at(n) << "," << det_vec.at(n) << std::endl;//<< "," << pos_vec.at(n) << std::endl;
+        for (int n = 0; n < multiplicity; n++) {
+            csv_file << i << "," <<
+                multiplicity << "," <<
+                charge_vec.at(n) << "," <<
+                energy_vec.at(n) << "," <<
+                time_vec.at(n) << "," <<
+                det_vec.at(n) << "," <<
+                pos_vec.at(n).X() << "," <<
+                pos_vec.at(n).Y() << "," <<
+                pos_vec.at(n).Z() << "," <<
+                kvalue_vec.at(n) <<
+                std::endl;
         }
-
-        /*
-        // Filling histograms
-        if (energy_vec.size() > 0) {
-            for (unsigned int g1 = 0; g1 < energy_vec.size(); ++g1) {
-                hist_vec_1D.at(1)->Fill(kvalue_vec.at(g1));
-                hist_vec_1D.back()->Fill(energy_vec.at(g1));
-                hist_vec_2D.at(0)->Fill(det_vec.at(g1), energy_vec.at(g1));
-                for(unsigned int g2 = g1 + 1; g2 < energy_vec.size(); ++g2) {
-                    if (g1 == g2) continue;
-                    // Timing information
-                    double delta_t = TMath::Abs(time_vec.at(g1) - time_vec.at(g2));
-                    hist_vec_1D.at(0)->Fill(delta_t);
-                } // grif2
-            } // grif1
-        } // end energy_vec
-        */
 
         if (i % 10000 == 0) {
             progress_bar.display();
@@ -135,6 +95,7 @@ void EventManager::FillHistograms(TChain *gChain)
     }     // end TChain loop
     progress_bar.done();
     csv_file.close();
+    std::cout << "Event data written to file: " << csv_filename << std::endl;
 } // FillHistograms()
 
 /************************************************************//**
@@ -166,24 +127,3 @@ void EventManager::PreProcessData()
         det_vec.push_back(det_id);
     }
 } // PreProcessData
-
-/************************************************************//**
- * Opens Root files
- *
- * @param file_name Analysis file path
- ***************************************************************/
-void EventManager::WriteHistogramsToFile()
-{
-    TFile *out_file = new TFile("histograms.root", "RECREATE");
-    std::cout << "Writing histograms to file: " << out_file->GetName() << std::endl;
-
-    out_file->cd();
-    for (auto &h : hist_vec_1D) {
-        h->Write();
-    }
-    for (auto &h : hist_vec_2D) {
-        h->Write();
-    }
-    out_file->Close();
-
-} // WriteHistogramsToFile()
